@@ -1,2 +1,3 @@
 *.db
 secrets.json
+stock_news/
