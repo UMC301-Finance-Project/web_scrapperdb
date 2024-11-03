@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import finnhub
 import datetime as dt
 import shutil
+import json
 
 class StockNewsExtractor:
     def __init__(self, api_key=None, output_dir='stock_news'):
@@ -176,8 +177,14 @@ def get_nifty_50_tickers():
     ]
 
 def main():
+
+# Load secrets from secrets.json
+    with open('secrets.json') as f:
+        secrets = json.load(f)
+
+    api_key = secrets.get('FINNHUB_API_KEY')
     try:
-        extractor = StockNewsExtractor('cshqdo9r01qg5burvvogcshqdo9r01qg5burvvp0')
+        extractor = StockNewsExtractor(api_key)
         nifty_tickers = get_nifty_50_tickers()
         db = NewsDatabase()
         
