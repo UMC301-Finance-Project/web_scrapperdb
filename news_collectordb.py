@@ -1,13 +1,18 @@
 import os
 import re
 import glob
-import sqlite3
 import pandas as pd
 from datetime import datetime, timedelta
 import finnhub
 import datetime as dt
 import shutil
 import json
+import sqlite3
+from datetime import datetime
+from textblob import TextBlob
+from sentence_transformers import SentenceTransformer
+import numpy as np
+from typing import List, Dict, Tuple
 
 class StockNewsExtractor:
     def __init__(self, api_key=None, output_dir='stock_news'):
@@ -134,11 +139,13 @@ class NewsDatabase:
     def __init__(self, db_name='stock_news.db'):
         self.connection = sqlite3.connect(db_name)
         self.cursor = self.connection.cursor()
+        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
         # Create the table if it doesn't exist
         self.create_table()
 
     def create_table(self):
         """Create a table for news articles if it doesn't exist."""
+        # Original table with added embedding column
         self.cursor.execute('''
         CREATE TABLE IF NOT EXISTS news_articles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -146,16 +153,23 @@ class NewsDatabase:
             headline TEXT,
             published_date TEXT,
             url TEXT,
-            sentiment REAL
+            sentiment REAL,
+            embedding BLOB
         )
         ''')
+        self.connection.commit()
     
     def insert_data(self, ticker, headline, published_date, url):
         """Insert a news article into the database."""
+        # Generate sentiment and embedding
+        sentiment = -2
+        embedding = self.embedding_model.encode(headline)
+        
         self.cursor.execute('''
-        INSERT INTO news_articles (stock_symbol, headline, published_date, url)
-        VALUES (?, ?, ?, ?)
-        ''', (ticker, headline, published_date, url))
+        INSERT INTO news_articles (stock_symbol, headline, published_date, url, sentiment, embedding)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ''', (ticker, headline, published_date, url, sentiment, embedding.tobytes()))
+        self.connection.commit()
     
     def fetch_data(self):
         """Fetch all news articles from the database."""
@@ -163,12 +177,93 @@ class NewsDatabase:
     
     def fetch_data_by_ticker(self, ticker):
         """Fetch news articles for a specific stock ticker."""
-        return self.cursor.execute('SELECT * FROM news_articles WHERE stock_symbol = ?', (ticker,)).fetchall()
+        return self.cursor.execute(
+            'SELECT * FROM news_articles WHERE stock_symbol = ?', 
+            (ticker,)
+        ).fetchall()
     
     def close(self):
         """Commit changes and close the database connection."""
         self.connection.commit()
         self.connection.close()
+
+    # New RAG-related methods
+    def find_similar_news(self, query: str, top_k: int = 5) -> List[Dict]:
+        """Find similar news articles using RAG."""
+        query_embedding = self.embedding_model.encode(query)
+        
+        # Fetch all articles
+        self.cursor.execute('''
+            SELECT id, stock_symbol, headline, published_date, url, sentiment, embedding 
+            FROM news_articles
+        ''')
+        articles = self.cursor.fetchall()
+        
+        # Calculate similarities
+        similarities = []
+        for article in articles:
+            article_embedding = np.frombuffer(article[6], dtype=np.float32)
+            similarity = np.dot(query_embedding, article_embedding) / \
+                        (np.linalg.norm(query_embedding) * np.linalg.norm(article_embedding))
+            similarities.append((similarity, article))
+        
+        # Sort and get top results
+        similarities.sort(reverse=True)
+        top_results = similarities[:top_k]
+        
+        # Format results
+        results = []
+        for similarity, article in top_results:
+            results.append({
+                'id': article[0],
+                'stock_symbol': article[1],
+                'headline': article[2],
+                'published_date': article[3],
+                'url': article[4],
+                'sentiment': article[5],
+                'similarity_score': float(similarity)
+            })
+        
+        return results
+
+    def get_sentiment_by_ticker(self, ticker: str) -> Dict:
+        """Get sentiment statistics for a specific ticker."""
+        self.cursor.execute('''
+            SELECT 
+                AVG(sentiment) as avg_sentiment,
+                COUNT(*) as total_articles
+            FROM news_articles
+            WHERE stock_symbol = ?
+        ''', (ticker,))
+        
+        stats = self.cursor.fetchone()
+        return {
+            'ticker': ticker,
+            'average_sentiment': stats[0],
+            'total_articles': stats[1]
+        }
+
+    def batch_insert_data(self, news_items: List[Tuple[str, str, str, str]]):
+        """Batch insert multiple news articles."""
+        for ticker, headline, published_date, url in news_items:
+            self.insert_data(ticker, headline, published_date, url)
+
+    def get_latest_news(self, ticker: str = None, limit: int = 10):
+        """Get the most recent news articles, optionally filtered by ticker."""
+        if ticker:
+            self.cursor.execute('''
+                SELECT * FROM news_articles 
+                WHERE stock_symbol = ?
+                ORDER BY published_date DESC 
+                LIMIT ?
+            ''', (ticker, limit))
+        else:
+            self.cursor.execute('''
+                SELECT * FROM news_articles 
+                ORDER BY published_date DESC 
+                LIMIT ?
+            ''', (limit,))
+        return self.cursor.fetchall()
 
 def get_nifty_50_tickers():
     """Returns a list of NIFTY 50 stock tickers."""
@@ -192,7 +287,8 @@ def main():
             ticker_news = extractor.extract_and_save_news_summaries(ticker, days_back=7)
             for idx,its in ticker_news.iterrows():
                 db.insert_data(its['ticker'], its['headline'], its['readable_datetime'], its['url'])  # Replace with actual headline fetching
-            
+        
+        print(db.find_similar_news('Apple', top_k=3))
         db.close()
     
     except ValueError as ve:
