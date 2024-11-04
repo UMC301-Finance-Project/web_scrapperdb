@@ -1,3 +1,4 @@
 *.db
 secrets.json
 stock_news/
+__pycache__/
