@@ -1,28 +1,24 @@
+# Standard libraries
 import os
 import re
-import glob
-import pandas as pd
-from datetime import datetime, timedelta
-import datetime as dt
 import shutil
+import time
+from datetime import datetime, timedelta
+from typing import List, Dict, Tuple
+from urllib.parse import quote
+
+# External libraries
+import pandas as pd
+import numpy as np
 import json
 import sqlite3
-from datetime import datetime
 from textblob import TextBlob
 from sentence_transformers import SentenceTransformer
-import numpy as np
-from typing import List, Dict, Tuple
-
-import os
-import re
-import shutil
-import pandas as pd
-from datetime import datetime, timedelta
-import datetime as dt
 import feedparser
-from urllib.parse import quote
-import time
+
+# Custom modules
 import rss_scrapper
+
 
 
 
@@ -186,7 +182,7 @@ def main():
         for index, row in news_df.iterrows():
             ndb.insert_data(row['ticker'], row['title'], row['pub_date'], row['link'])
     # Close the database connection
-    
+
     ndb.close()
 if __name__ == "__main__":
     main()
