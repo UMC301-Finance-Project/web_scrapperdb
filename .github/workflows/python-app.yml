@@ -3,6 +3,7 @@ name: Daily Scrape Job
 on:
   schedule:
     - cron: '0 0 * * *' # Runs daily at midnight UTC
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
   scrape:
@@ -24,6 +25,6 @@ jobs:
 
     - name: Run the scraper script
       env:
-        GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }} # Firebase credentials file
+        GOOGLE_APPLICATION_CREDENTIALS: firebase_credentials.json  # Firebase credentials file
       run: |
-        python news_collectordb # update this path to your script
+        python news_collectordb.py  # update this path to your script
