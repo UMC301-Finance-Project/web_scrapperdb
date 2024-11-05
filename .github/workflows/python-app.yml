@@ -10,13 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Decrypt large secret
-        run: ./decrypt_secrets.sh
-        env:
-          DECRYPTOR: ${{ secrets.DECRYPTOR }}
-      # This command is just an example to show your secret being printed
-      # Ensure you remove any print statements of your secrets. GitHub does
-      # not hide secrets that use this workaround.
       - name: Test printing your secret (Remove this step in production)
         run: cat $HOME/secrets/my_secret.json
       - name: Check out the code
@@ -34,7 +27,8 @@ jobs:
 
       - name: Decrypt and Run the scraper script
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: $HOME/secrets/my_secret.json  # Firebase credentials file
+          DECRYPTOR: ${{ secrets.DECRYPTOR }}
         run: |
           ./decrypt_secrets.sh
+          ls ./secrets.json
           python news_collectordb.py  # update this path to your script
