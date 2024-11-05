@@ -32,8 +32,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run the scraper script
+      - name: Decrypt and Run the scraper script
         env:
           GOOGLE_APPLICATION_CREDENTIALS: $HOME/secrets/my_secret.json  # Firebase credentials file
         run: |
+          ./decrypt_secrets.sh
           python news_collectordb.py  # update this path to your script
