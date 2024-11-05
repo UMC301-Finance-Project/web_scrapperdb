@@ -45,7 +45,7 @@ class NewsDatabase:
 
     def initialize_firestore(self):
         """Initialize Firestore with Firebase credentials."""
-        cred_path = "$HOME/secrets/my_secret.json"        
+        cred_path = "./secrets.json"        
         cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred)
         return firestore.client()
