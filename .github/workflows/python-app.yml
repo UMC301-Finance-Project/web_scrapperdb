@@ -10,8 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check out the code
-        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Fetch all history for all branches
 
       - name: Set up Python
         uses: actions/setup-python@v3
@@ -30,3 +30,16 @@ jobs:
           ./decrypt_secrets.sh
           ls ./secrets.json
           python news_collectordb.py  # update this path to your script
+
+      - name: Commit database changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add stock_news.db  # Adjust this path if needed
+          git commit -m "Update stock_news.db with new data" || echo "No changes to commit"
+
+      - name: Push changes to GitHub
+        run: |
+          git push origin HEAD:main # Adjust the branch name if needed
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Automatically provided by GitHub Actions
