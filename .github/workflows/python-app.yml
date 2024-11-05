@@ -27,4 +27,4 @@ jobs:
       env:
         GOOGLE_APPLICATION_CREDENTIALS: firebase_credentials.json  # Firebase credentials file
       run: |
-        python news_collectordb  # update this path to your script
+        python news_collectordb.py  # update this path to your script
