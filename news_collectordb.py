@@ -45,10 +45,7 @@ class NewsDatabase:
 
     def initialize_firestore(self):
         """Initialize Firestore with Firebase credentials."""
-        cred_path = "$HOME/secrets/my_secret.json"
-        if not cred_path or not os.path.exists(cred_path):
-            raise ValueError("Firebase credentials file path is not set or does not exist.")
-        
+        cred_path = "$HOME/secrets/my_secret.json"        
         cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred)
         return firestore.client()
