@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Decrypt large secret
-        run: ./decrypt_secret.sh
+        run: ./decrypt_secrets.sh
         env:
           DECRYPTOR: ${{ secrets.DECRYPTOR }}
       # This command is just an example to show your secret being printed
