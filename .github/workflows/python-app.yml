@@ -8,23 +8,32 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Check out the code
-      uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - name: Decrypt large secret
+        run: ./decrypt_secret.sh
+        env:
+          DECRYPTOR: ${{ secrets.DECRYPTOR }}
+      # This command is just an example to show your secret being printed
+      # Ensure you remove any print statements of your secrets. GitHub does
+      # not hide secrets that use this workaround.
+      - name: Test printing your secret (Remove this step in production)
+        run: cat $HOME/secrets/my_secret.json
+      - name: Check out the code
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.x' # specify your Python version
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.x' # specify your Python version
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Run the scraper script
-      env:
-        GOOGLE_APPLICATION_CREDENTIALS: firebase_credentials.json  # Firebase credentials file
-      run: |
-        python news_collectordb.py  # update this path to your script
+      - name: Run the scraper script
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: $HOME/secrets/my_secret.json  # Firebase credentials file
+        run: |
+          python news_collectordb.py  # update this path to your script
