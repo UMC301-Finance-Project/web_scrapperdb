@@ -1,0 +1,6 @@
+pandas
+numpy
+feedparser
+textblob
+sentence-transformers
+firebase-admin
