@@ -52,7 +52,7 @@ class NewsDatabase:
         ''')
         self.connection.commit()
 
-        def backup_and_recreate_news_collection(self):
+    def backup_and_recreate_news_collection(self):
             """Create a backup of the existing news_articles collection and reset it."""
             db = self.firestore_db
             news_articles_ref = db.collection('news_articles')
