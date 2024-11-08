@@ -22,15 +22,22 @@ class StockNewsExtractor:
 class NewsDatabase:
     def __init__(self, db_name='stock_news.db', aspects=None):
         """Initialize the NewsDatabase with a specified SQLite database name and aspects list."""
+        
+        # Delete the existing database file if it exists
+        if os.path.exists(db_name):
+            os.remove(db_name)
+        
+        # Connect to SQLite database
         self.connection = sqlite3.connect(db_name)
         self.cursor = self.connection.cursor()
         self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
         
         # Define the list of aspects
-        self.aspects = absa.aspects
+        self.aspects = aspects if aspects else ['default_aspect']  # Provide a default list or handle if aspects is None
         
         # Initialize the SentimentAnalyser with the specified aspects
-        self.sentiment_analyser = SentimentAnalyser(chaspects=absa.aspects)
+        self.sentiment_analyser = SentimentAnalyser(aspects=self.aspects)
+        
         # Create the table with columns for each aspect
         self.create_table()
 
