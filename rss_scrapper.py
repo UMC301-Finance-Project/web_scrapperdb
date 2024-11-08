@@ -3,8 +3,8 @@ import time
 from typing import List, Dict
 import feedparser
 from urllib.parse import quote
+from tqdm import tqdm  # For progress tracking
 
-# Define NIFTY-50 stock tickers with aliases
 # Define NIFTY-50 stock tickers with aliases
 ticker_aliases = {
     'ADANIPORTS.NS': ['Adani Ports', 'Adani Ports and Special Economic Zone'],
@@ -17,8 +17,8 @@ ticker_aliases = {
     'BRITANNIA.NS': ['Britannia', 'Britannia Industries'],
     'CIPLA.NS': ['Cipla'],
     'COALINDIA.NS': ['Coal India'],
-    'DIVISLAB.NS': ['Divi\'s Laboratories'],
-    'DRREDDY.NS': ['Dr. Reddy\'s Laboratories'],
+    'DIVISLAB.NS': ["Divi's Laboratories"],
+    'DRREDDY.NS': ["Dr. Reddy's Laboratories"],
     'EICHERMOT.NS': ['Eicher Motors'],
     'GAIL.NS': ['GAIL', 'GAIL (India)'],
     'GRASIM.NS': ['Grasim Industries'],
@@ -83,11 +83,12 @@ def fetch_rss_articles(alias: str) -> List[Dict]:
 
 def fetch_news_for_tickers(ticker_aliases: Dict[str, List[str]]) -> pd.DataFrame:
     """
-    Fetch news articles for each ticker and its aliases, and return a DataFrame.
+    Fetch news articles for each ticker and its aliases, with progress tracking.
     """
     all_articles = []
-    for ticker, aliases in ticker_aliases.items():
-        for alias in aliases:
+    # Use tqdm to show progress for each ticker
+    for ticker, aliases in tqdm(ticker_aliases.items(), desc="Tickers", unit="ticker"):
+        for alias in tqdm(aliases, desc=f"Processing aliases for {ticker}", leave=False, unit="alias"):
             articles = fetch_rss_articles(alias)
             for article in articles:
                 article['ticker'] = ticker
@@ -95,4 +96,3 @@ def fetch_news_for_tickers(ticker_aliases: Dict[str, List[str]]) -> pd.DataFrame
     news_df = pd.DataFrame(all_articles)
     news_df = news_df.dropna(subset=['title']).drop_duplicates(subset='title')
     return news_df
-

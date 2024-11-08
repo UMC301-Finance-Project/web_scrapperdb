@@ -5,7 +5,8 @@ from sentence_transformers import SentenceTransformer
 
 # Custom modules
 import rss_scrapper
-
+import absa
+from absa import SentimentAnalyser
 class StockNewsExtractor:
     def __init__(self, output_dir='stock_news'):
         self.output_dir = output_dir
@@ -19,45 +20,75 @@ class StockNewsExtractor:
         return articles
 
 class NewsDatabase:
-    def __init__(self, db_name='stock_news.db'):
+    def __init__(self, db_name='stock_news.db', aspects=None):
+        """Initialize the NewsDatabase with a specified SQLite database name and aspects list."""
         self.connection = sqlite3.connect(db_name)
         self.cursor = self.connection.cursor()
         self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        
+        # Define the list of aspects
+        self.aspects = absa.aspects
+        
+        # Initialize the SentimentAnalyser with the specified aspects
+        self.sentiment_analyser = SentimentAnalyser(chaspects=absa.aspects)
+        # Create the table with columns for each aspect
         self.create_table()
 
     def create_table(self):
-        """Create a table for news articles if it doesn't exist."""
-        self.cursor.execute('''
-        CREATE TABLE IF NOT EXISTS news_articles (
+        """Create a table for news articles with columns for each aspect's score."""
+        # Basic schema with fixed columns
+        columns = '''
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             stock_symbol TEXT,
             headline TEXT,
             published_date TEXT,
             url TEXT,
-            sentiment REAL,
-            embedding BLOB
-        )
+            embedding BLOB,
+        '''
+        
+        # Add a column for each aspect using the aspect's name directly
+        for aspect in range(len(absa.aspects)-1):
+            columns += f'{absa.aspects[aspect]} REAL,\n'
+        
+        columns+=f'{absa.aspects[-1]} REAL\n'
+        # Create the table if it doesn't already exist
+        self.cursor.execute(f'''
+            CREATE TABLE IF NOT EXISTS news_articles ({columns})
         ''')
         self.connection.commit()
+        print(f"Table created with columns for each aspect with this query: {columns}")
 
     def insert_data(self, ticker, headline, published_date, url):
-        """Insert a news article into the database."""
-        # Generate sentiment and embedding
-        sentiment = -2  # Placeholder; you may replace it with sentiment analysis
-        embedding = self.embedding_model.encode(headline)
+        """Insert data into the database, including scores for each aspect."""
+        # General sentiment placeholder (update as needed for full sentiment analysis)
         
-        # Insert into SQLite database
-        self.cursor.execute('''
-        INSERT INTO news_articles (stock_symbol, headline, published_date, url, sentiment)
-        VALUES (?, ?, ?, ?, ?)
-        ''', (ticker, headline, published_date, url, sentiment))
+        # Generate embedding for the headline
+        embedding = self.embedding_model.encode(headline)
+
+        # Generate aspect-based sentiment scores for each aspect
+        aspect_scores = self.sentiment_analyser.analyze_sentiment(headline)
+
+        # Prepare SQL for dynamic insertion based on aspects
+        aspect_columns = ', '.join(self.aspects)  # Create columns list for SQL
+        placeholders = ', '.join(['?'] * (4 + len(self.aspects)))  # Placeholder for SQL
+        values = [ticker, headline, published_date, url]+ list(aspect_scores.values())
+        
+        print(values, type(values))
+        print(aspect_columns, type(aspect_columns))
+        # Insert into the database
+        self.cursor.execute(f'''
+            INSERT INTO news_articles (stock_symbol, headline, published_date, url, {aspect_columns})
+            VALUES ({placeholders})
+        ''', values)
         self.connection.commit()
-        print(f"Data inserted into SQLite for {ticker}")
+        print(f"Data inserted for {ticker} with aspect scores.")
 
     def close(self):
         """Commit changes and close the database connection."""
         self.connection.commit()
         self.connection.close()
+        print("Database connection closed.")
+
 
 def get_nifty_50_tickers():
     """Returns a list of NIFTY 50 stock tickers."""
