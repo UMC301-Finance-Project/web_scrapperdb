@@ -38,7 +38,7 @@ jobs:
       - name: Upload SQLite Database as Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: stock_news_db
+          name: stock_news.db
           path: stock_news.db # Specify the path to your SQLite database file
 
       - name: Commit and Push Database to Repository
