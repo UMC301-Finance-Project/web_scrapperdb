@@ -84,7 +84,7 @@ class NewsDatabase:
         print(aspect_columns, type(aspect_columns))
         # Insert into the database
         self.cursor.execute(f'''
-            INSERT INTO news_articles (stock_symbol, headline, published_date, url, {aspect_columns})
+            INSERT INTO news_articles (stock_symbol, headline, "published_date", url, {aspect_columns})
             VALUES ({placeholders})
         ''', values)
         self.connection.commit()
