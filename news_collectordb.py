@@ -36,7 +36,7 @@ class NewsDatabase:
         self.aspects = aspects if aspects else ['default_aspect']  # Provide a default list or handle if aspects is None
         
         # Initialize the SentimentAnalyser with the specified aspects
-        self.sentiment_analyser = SentimentAnalyser(aspects=self.aspects)
+        self.sentiment_analyser = SentimentAnalyser(chaspects=self.aspects)
         
         # Create the table with columns for each aspect
         self.create_table()
