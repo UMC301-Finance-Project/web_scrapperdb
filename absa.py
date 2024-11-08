@@ -9,7 +9,7 @@ absa_model = AutoModelForSequenceClassification \
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 # Load a traditional Sentiment Analysis model
-sentiment_model_path = "cardiffnlp/twitter-xlm-roberta-base-sentiment"
+sentiment_model_path = "ProsusAI/finbert"
 sentiment_model = pipeline("sentiment-analysis", model=sentiment_model_path,
                           tokenizer=sentiment_model_path, device=device)
 aspects = [
@@ -47,9 +47,9 @@ class SentimentAnalyser:
             if neutral_prob > max(positive_prob, negative_prob):
                 score = 0  # Neutral sentiment dominates
             elif positive_prob > negative_prob:
-                score = positive_prob  # Positive sentiment dominates
+                score = float(positive_prob)  # Positive sentiment dominates
             else:
-                score = -negative_prob  # Negative sentiment dominates
+                score = float(-1*negative_prob)  # Negative sentiment dominates
 
             # Store the score for the current aspect
             aspect_scores[aspect] = score
@@ -58,9 +58,9 @@ class SentimentAnalyser:
                 if asf['label']=='neutral':
                     prob=0
                 elif asf['label'] =='positive':
-                    prob= asf['score']
+                    prob= float(asf['score'])
                 else:
-                    prob = -1*asf['score']
+                    prob = float(-1*asf['score'])
 
                 aspect_scores['Sentiment'] =prob
         return aspect_scores
