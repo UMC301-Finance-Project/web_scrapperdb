@@ -1,119 +1,115 @@
 import os
 import sqlite3
-from datetime import datetime
+import pandas as pd
 from sentence_transformers import SentenceTransformer
-
+import firebase_admin
+from firebase_admin import credentials, firestore
+from tqdm import tqdm
 # Custom modules
 import rss_scrapper
 import absa
 from absa import SentimentAnalyser
+
+from tqdm import tqdm
+tqdm.pandas(desc="Analyzing Sentiment")
+
 class StockNewsExtractor:
     def __init__(self, output_dir='stock_news'):
         self.output_dir = output_dir
-        os.makedirs(output_dir, exist_ok=True)     
+        os.makedirs(output_dir, exist_ok=True)
         self.news_df = rss_scrapper.fetch_news_for_tickers(rss_scrapper.ticker_aliases)
-        print("News Dataframe created")
+        print("News DataFrame created")
 
     def extract_and_save_news_summaries(self, ticker):
-        """Extract and save news summaries for a given stock ticker."""
-        articles = self.news_df[self.news_df['ticker'] == ticker]
-        return articles
+        """Extract and return news summaries for a given stock ticker."""
+        return self.news_df[self.news_df['ticker'] == ticker]
 
-class NewsDatabase:
-    def __init__(self, db_name='stock_news.db', aspects=None):
-        """Initialize the NewsDatabase with a specified SQLite database name and aspects list."""
-        
-        # Delete the existing database file if it exists
-        if os.path.exists(db_name):
-            os.remove(db_name)
-        
+class FirestoreUploader:
+    def __init__(self):
+        # Initialize Firestore connection
+        if not firebase_admin._apps:
+            cred = credentials.Certificate('secrets.json')  # Update with your Firebase service account key path
+            firebase_admin.initialize_app(cred)
+        self.db = firestore.client()
+
+    def upload_data(self, db_path='stock_news.db'):
+        """Upload data from SQLite database to Firebase Firestore."""
         # Connect to SQLite database
-        self.connection = sqlite3.connect(db_name)
-        self.cursor = self.connection.cursor()
-        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        connection = sqlite3.connect(db_path)
+        cursor = connection.cursor()
         
-        # Define the list of aspects
-        self.aspects = absa.aspects
+        # Fetch all records from the database
+        cursor.execute("SELECT * FROM news_articles")
+        rows = cursor.fetchall()
         
-        # Initialize the SentimentAnalyser with the specified aspects
-        self.sentiment_analyser = SentimentAnalyser(chaspects=self.aspects)
+        # Get column names
+        column_names = [description[0] for description in cursor.description]
         
-        # Create the table with columns for each aspect
-        self.create_table()
+        # Upload each row as a document to Firestore
+        for row in rows:
+            doc_data = dict(zip(column_names, row))
+            doc_id = str(doc_data.get("id"))  # Use a unique field for the document ID
+            # Add to Firestore
+            self.db.collection("stock_news").document(doc_id).set(doc_data)
+            print(f"Uploaded document ID: {doc_id} to Firestore.")
 
-    def create_table(self):
-        """Create a table for news articles with columns for each aspect's score."""
-        # Basic schema with fixed columns
-        columns = '''
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            stock_symbol TEXT,
-            headline TEXT,
-            published_date TEXT,
-            url TEXT,
-            embedding BLOB,
-        '''
-        
-        # Add a column for each aspect using the aspect's name directly
-        for aspect in range(len(absa.aspects)-1):
-            columns += f'{absa.aspects[aspect]} REAL,\n'
-        
-        columns+=f'{absa.aspects[-1]} REAL\n'
-        # Create the table if it doesn't already exist
-        self.cursor.execute(f'''
-            CREATE TABLE IF NOT EXISTS news_articles ({columns})
-        ''')
-        self.connection.commit()
-        print(f"Table created with columns for each aspect with this query: {columns}")
+        # Close SQLite connection
+        connection.close()
+        print("Uploaded all data to Firestore and closed the SQLite connection.")
+    
+    def clear_collection(self, collection_name="stock_news"):
+        """Delete all documents from the specified Firestore collection."""
+        collection_ref = self.db.collection(collection_name)
+        batch_size = 10  # Set batch size for deleting documents in chunks
 
-    def insert_data(self, ticker, headline, published_date, url):
-        """Insert data into the database, including scores for each aspect."""
-        # General sentiment placeholder (update as needed for full sentiment analysis)
-        
-        # Generate embedding for the headline
-        embedding = self.embedding_model.encode(headline)
+        # Function to delete a batch of documents
+        def delete_batch(batch_ref):
+            for doc in batch_ref:
+                doc.reference.delete()
+            print(f"Deleted {len(batch_ref)} documents.")
 
-        # Generate aspect-based sentiment scores for each aspect
-        aspect_scores = self.sentiment_analyser.analyze_sentiment(headline)
-
-        # Prepare SQL for dynamic insertion based on aspects
-        aspect_columns = ', '.join(self.aspects)  # Create columns list for SQL
-        placeholders = ', '.join(['?'] * (4 + len(self.aspects)))  # Placeholder for SQL
-        values = [ticker, headline, published_date, url]+ list(aspect_scores.values())
-        
-        print(values, type(values))
-        print(aspect_columns, type(aspect_columns))
-        # Insert into the database
-        self.cursor.execute(f'''
-            INSERT INTO news_articles (stock_symbol, headline, "published_date", url, {aspect_columns})
-            VALUES ({placeholders})
-        ''', values)
-        self.connection.commit()
-        print(f"Data inserted for {ticker} with aspect scores.")
-
-    def close(self):
-        """Commit changes and close the database connection."""
-        self.connection.commit()
-        self.connection.close()
-        print("Database connection closed.")
-
+        # Delete all documents in batches
+        while True:
+            docs = list(collection_ref.limit(batch_size).stream())
+            if not docs:
+                break
+            delete_batch(docs)
+        print(f"Cleared all documents from '{collection_name}' collection.")
 
 def get_nifty_50_tickers():
     """Returns a list of NIFTY 50 stock tickers."""
     return rss_scrapper.ticker_aliases.keys()
 
 def main():
-    # Initialize the StockNewsExtractor
-    extractor = StockNewsExtractor()
-    ndb = NewsDatabase()
+    # Initialize the StockNewsExtractor and extract news data
+    uploader = FirestoreUploader()
+    uploader.clear_collection()
+    if not os.path.exists('stock_news.db'):
+        extractor = StockNewsExtractor()
+        all_news_df = pd.DataFrame()
+
+        # Extract and save news summaries for each ticker
+        for ticker in tqdm(get_nifty_50_tickers(), desc="News Saver"):
+            news_df = extractor.extract_and_save_news_summaries(ticker)
+            
+            # Concatenate results into a single DataFrame
+            all_news_df = pd.concat([all_news_df, news_df], ignore_index=True)
+
+        # Add sentiment analysis columns to the DataFrame
+        sentiment_analyser = SentimentAnalyser(chaspects=absa.aspects)
+        # Iterate over aspects with a progress bar
+        for aspect in tqdm(absa.aspects, desc="Processing Aspects"):
+            # Apply sentiment analysis for each aspect and show progress
+            all_news_df[aspect] = all_news_df['title'].progress_apply(sentiment_analyser.analyze_sentiment)
+
+        # Save the DataFrame to an SQLite database file
+        with sqlite3.connect('stock_news.db') as conn:
+            all_news_df.to_sql('news_articles', conn, if_exists='replace', index=False)
+        print("DataFrame saved to stock_news.db")
+
+    # Upload the data to Firestore
     
-    # Extract and save news summaries for each ticker
-    for ticker in get_nifty_50_tickers():
-        news_df = extractor.extract_and_save_news_summaries(ticker)
-        for index, row in news_df.iterrows():
-            ndb.insert_data(row['ticker'], row['title'], row['pub_date'], row['link'])
-    
-    # Close the database connection
-    ndb.close()
+    uploader.upload_data()
 
 if __name__ == "__main__":
     main()
