@@ -88,10 +88,7 @@ The system uses two types of sentiment analysis:
 
 Sentiment scores range from -1 (negative) to 1 (positive), with 0 indicating neutral sentiment.
 
-## License
-
-[Add your license here]
-
 ## Contributors
 
-[Add contributors here]
+Pratyush Kant
+Sirjan Hansda
