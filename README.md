@@ -30,3 +30,10 @@ Install dependencies:
 ```bash
 pip install -r requirements.txt
 
+## Usage
+
+### Run the Main Script
+
+```bash
+python news_collectordb.py
+
