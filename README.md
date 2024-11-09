@@ -1,39 +1,97 @@
-# Stock News Sentiment Analysis Pipeline
+# Stock News Sentiment Analysis System
 
-A Python-based solution for collecting, analyzing, and storing stock news headlines with sentiment scoring for NIFTY-50 companies. This project fetches news data from RSS feeds, processes it for multiple aspects, and stores it in a SQLite database for further analysis.
+A comprehensive system for collecting, analyzing, and storing news sentiment data for NIFTY-50 stocks using aspect-based sentiment analysis.
+
+## Overview
+
+This project fetches real-time news data for NIFTY-50 stocks from Google News RSS feeds and performs aspect-based sentiment analysis on various financial metrics. The system analyzes sentiment across multiple aspects like Earnings, Revenue, Margins, and more, storing the results in a SQLite database for further analysis.
 
 ## Features
 
-- **RSS News Collection**: Fetches stock-related news for NIFTY-50 companies from Google News RSS feeds, processing multiple aliases for each ticker.
-- **Aspect-Based Sentiment Analysis**: Uses the `deberta-v3-base-absa-v1.1` model to score headlines based on key financial aspects, including Earnings, Revenue, Margins, and Sentiment.
-- **Data Storage**: Stores results in an SQLite database, `stock_news.db`, with a schema accommodating ticker symbols, article titles, publication dates, URLs, and aspect-based sentiment scores.
-- **Embedding Generation**: Generates sentence embeddings for headlines using the `all-MiniLM-L6-v2` model, allowing for future search and similarity queries.
+- Real-time news collection from Google News RSS feeds
+- Aspect-based sentiment analysis for financial news
+- Support for all NIFTY-50 stocks
+- Sentiment analysis across multiple financial aspects:
+  - Earnings
+  - Revenue
+  - Margins
+  - Dividend
+  - EBITDA
+  - Debt
+  - Overall Sentiment
+- SQLite database storage with embeddings for efficient retrieval
+- Retry mechanism for robust news fetching
+
+## Dependencies
+
+```plaintext
+pandas
+feedparser
+tqdm
+sqlite3
+torch
+transformers
+sentence-transformers
+```
 
 ## Project Structure
 
-- **`StockNewsExtractor`**: Manages news data collection using a custom RSS scraper for stock aliases.
-- **`NewsDatabase`**: Handles SQLite database creation and data insertion for news headlines, storing sentiment scores for multiple aspects.
-- **`SentimentAnalyser`**: Leverages transformer models for both aspect-based and general sentiment analysis.
+### Core Components
 
-## Requirements
+1. `rss_scrapper.py`: News collection module
+2. `news_collectordb.py`: Database management and coordination
+3. `absa.py`: Aspect-based sentiment analysis implementation
 
-- Python 3.8+
-- Transformers
-- sentence-transformers
-- pandas
-- feedparser
-- sqlite3
-- torch
+## Installation
 
-Install dependencies:
-
+1. Clone the repository:
 ```bash
-pip install -r requirements.txt
+git clone https://github.com/yourusername/stock-news-sentiment.git
+cd stock-news-sentiment
+```
+
+2. Install required packages:
+```bash
+pip install pandas feedparser tqdm torch transformers sentence-transformers
+```
+
+3. Download required models:
+- DeBERTa v3 for aspect-based sentiment analysis
+- FinBERT for financial sentiment analysis
+- all-MiniLM-L6-v2 for text embeddings
 
 ## Usage
 
-### Run the Main Script
+Run the main script to start collecting and analyzing news:
 
 ```bash
 python news_collectordb.py
+```
 
+## Technical Details
+
+### Database Schema
+
+The SQLite database stores the following information for each news article:
+- Stock symbol
+- Headline
+- Published date
+- URL
+- Text embedding
+- Sentiment scores for each financial aspect
+
+### Sentiment Analysis
+
+The system uses two types of sentiment analysis:
+1. Aspect-based sentiment analysis using DeBERTa v3
+2. General financial sentiment analysis using FinBERT
+
+Sentiment scores range from -1 (negative) to 1 (positive), with 0 indicating neutral sentiment.
+
+## License
+
+[Add your license here]
+
+## Contributors
+
+[Add contributors here]
