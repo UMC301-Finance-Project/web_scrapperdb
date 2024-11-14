@@ -58,7 +58,6 @@ pip install pandas feedparser tqdm torch transformers sentence-transformers
 3. Download required models:
 - DeBERTa v3 for aspect-based sentiment analysis
 - FinBERT for financial sentiment analysis
-- all-MiniLM-L6-v2 for text embeddings
 
 ## Usage
 
