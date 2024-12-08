@@ -7,7 +7,7 @@ firebase-admin
 sentencepiece
 tokenizers
 protobug
-torch==2.4.1
-transformers==4.44.2
+torch
+transformers
 yfinance
 matplotlib

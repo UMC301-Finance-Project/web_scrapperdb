@@ -12,16 +12,8 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 sentiment_model_path = "ProsusAI/finbert"
 sentiment_model = pipeline("sentiment-analysis", model=sentiment_model_path,
                           tokenizer=sentiment_model_path, device=device)
-aspects = [
-    "Earnings",
-    "Revenue",
-    "Margins",
-    "Dividend",
-    "EBITDA",
-    "Debt",
-    "Sentiment"
-]
-
+aspects = ['Earnings', 'Revenue', 'Margins', 'Dividend', 'EBITDA', 'Debt', 'Sentiment', 'Trendlyne', 'Stock Symbol', 'Rating', 'Verdict', 'Quarterly Metrics' ,'Stakeholder Perception' ,'Strategic Innovation' ,'Equity Dynamics' ,'Technological Proliferation' ,'Executive Foresight' ,'Valuation Analysis' ,'Operational Synergy' ,'Technological Advancements' ,'Economic Impact' ,'Transformational Potential' ,'Strategic Governance' ,'Compliance Framework' ,'Operational Trade-offs' ,'Margin Compression' ,'Sustainable Advantage' ,'Risk Mitigation' ,'Adaptive Capacity' ,'Capital Deployment' ,'Expenditure Management' ,'Growth Trajectory' ,'Economic Prudence' ,'Stakeholder Assurance' ,'Operational Prioritization' ,'Organizational Redesign' ,'Technological Disruption' ,'Structural Evolution' ,'Workforce Recomposition' ,'Strategic Pivot' ,'Value Realization' ,'Market Fluctuations' ,'Technological Legitimacy' ,'Institutional Sentiment' ,'Innovative Potential' ,'Volatility Management' ,'Strategic Investment' ,'Global Market Instability' ,'Portfolio Resilience' ,'Risk Containment' ,'Strategic Optimization' ,'Economic Ambiguity' ,'Investment Acumen' ,'Leadership Vacuum' ,'Cultural Transformation' ,'Strategic Renewal' ,'Market Reassurance' ,'Potential Rejuvenation' ,'Investor Dynamics' ,'Innovation Funding' ,'Profitability Trade-offs' ,'Future Vision' ,'Market Dominance' ,'Resource Efficiency' ,'Strategic Alignment' ,'Debt Restructuring' ,'Cost Optimization' ,'Fiscal Transparency' ,'Structural Vulnerability' ,'Sustainability Strategy' ,'Strategic Transparency', 'Sentiment']
+#aspects = ['Sentiment']
 
 class SentimentAnalyser:
     def __init__(self, chaspects=aspects):
